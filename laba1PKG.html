@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Лабораторная работа 1. Вариант 6: CMYK ↔ RGB ↔ HLS</title>
+<style>
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 20px;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: #f0f2f5;
+    color: #222;
+  }
+
+  h1 {
+    margin: 0 0 8px;
+    font-size: 24px;
+    text-align: center;
+  }
+
+  .subtitle {
+    text-align: center;
+    color: #666;
+    margin-bottom: 20px;
+  }
+
+  .app {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  }
+
+  .card h2 {
+    margin: 0 0 14px;
+    font-size: 18px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 8px;
+  }
+
+  .preview-wrap {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .preview {
+    width: 120px;
+    height: 120px;
+    border-radius: 10px;
+    border: 2px solid #ccc;
+    flex-shrink: 0;
+  }
+
+  .preview-info {
+    font-size: 13px;
+    line-height: 1.6;
+    color: #555;
+  }
+
+  .model-block {
+    margin-bottom: 18px;
+    padding: 12px;
+    border: 1px solid #e3e3e3;
+    border-radius: 10px;
+    background: #fafafa;
+  }
+
+  .model-block h3 {
+    margin: 0 0 10px;
+    font-size: 15px;
+  }
+
+  .field-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .field-row label {
+    width: 28px;
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .field-row input[type="number"] {
+    width: 85px;
+    padding: 5px 6px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+
+  .field-row input[type="range"] {
+    flex: 1;
+    min-width: 80px;
+  }
+
+  .field-row input[type="color"] {
+    width: 50px;
+    height: 34px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 2px;
+    cursor: pointer;
+  }
+
+  .warning {
+    display: none;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #fff3cd;
+    border: 1px solid #ffeeba;
+    color: #856404;
+    font-size: 13px;
+  }
+
+  .warning.show { display: block; }
+
+  .btns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  button {
+    padding: 8px 14px;
+    border: none;
+    border-radius: 8px;
+    background: #3b82f6;
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  button:hover { background: #2563eb; }
+
+  button.secondary {
+    background: #e5e7eb;
+    color: #222;
+  }
+
+  button.secondary:hover { background: #d1d5db; }
+
+  .palette {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 4px;
+    margin-top: 10px;
+  }
+
+  .palette div {
+    aspect-ratio: 1 / 1;
+    border-radius: 5px;
+    cursor: pointer;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+  }
+
+  .palette div:hover { transform: scale(1.08); }
+
+  @media (max-width: 860px) {
+    .app { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Лабораторная работа 1</h1>
+<div class="subtitle">Вариант 6: CMYK ↔ RGB ↔ HLS</div>
+
+<div class="app">
+
+  <div class="card">
+    <h2>Предпросмотр и палитра</h2>
+
+    <div class="preview-wrap">
+      <div id="preview" class="preview"></div>
+      <div class="preview-info">
+        <div><b>HEX:</b> <span id="hexLabel">#000000</span></div>
+        <div><b>RGB:</b> <span id="rgbLabel">0, 0, 0</span></div>
+        <div><b>CMYK:</b> <span id="cmykLabel">0%, 0%, 0%, 100%</span></div>
+        <div><b>HLS:</b> <span id="hlsLabel">0°, 0%, 0%</span></div>
+      </div>
+    </div>
+
+    <div class="btns">
+      <button id="randomBtn">Случайный цвет</button>
+      <button id="blackBtn" class="secondary">Чёрный</button>
+      <button id="whiteBtn" class="secondary">Белый</button>
+    </div>
+
+    <h3 style="margin-top:18px;">Палитра</h3>
+    <div id="palette" class="palette"></div>
+  </div>
+
+  <div class="card">
+    <h2>Цветовые модели</h2>
+
+    <div class="model-block">
+      <h3>CMYK</h3>
+
+      <div class="field-row">
+        <label>C</label>
+        <input type="number" id="cNum" min="0" max="100" step="1" value="0">
+        <input type="range" id="cRange" min="0" max="100" step="1" value="0">
+      </div>
+
+      <div class="field-row">
+        <label>M</label>
+        <input type="number" id="mNum" min="0" max="100" step="1" value="0">
+        <input type="range" id="mRange" min="0" max="100" step="1" value="0">
+      </div>
+
+      <div class="field-row">
+        <label>Y</label>
+        <input type="number" id="yNum" min="0" max="100" step="1" value="0">
+        <input type="range" id="yRange" min="0" max="100" step="1" value="0">
+      </div>
+
+      <div class="field-row">
+        <label>K</label>
+        <input type="number" id="kNum" min="0" max="100" step="1" value="100">
+        <input type="range" id="kRange" min="0" max="100" step="1" value="100">
+      </div>
+
+      <div class="field-row">
+        <label>Палитра</label>
+        <input type="color" id="cmykPicker" value="#000000">
+      </div>
+    </div>
+
+    <div class="model-block">
+      <h3>RGB</h3>
+
+      <div class="field-row">
+        <label>R</label>
+        <input type="number" id="rNum" min="0" max="255" step="1" value="0">
+        <input type="range" id="rRange" min="0" max="255" step="1" value="0">
+      </div>
+
+      <div class="field-row">
+        <label>G</label>
+        <input type="number" id="gNum" min="0" max="255" step="1" value="0">
+        <input type="range" id="gRange" min="0" max="255" step="1" value="0">
+      </div>
+
+      <div class="field-row">
+        <label>B</label>
+        <input type="number" id="bNum" min="0" max="255" step="1" value="0">
+        <input type="range" id="bRange" min="0" max="255" step="1" value="0">
+      </div>
+
+      <div class="field-row">
+        <label>Палитра</label>
+        <input type="color" id="rgbPicker" value="#000000">
+      </div>
+    </div>
+
+    <div class="model-block">
+      <h3>HLS (Hue, Lightness, Saturation)</h3>
+
+      <div class="field-row">
+        <label>H</label>
+        <input type="number" id="hNum" min="0" max="360" step="1" value="0">
+        <input type="range" id="hRange" min="0" max="360" step="1" value="0">
+      </div>
+
+      <div class="field-row">
+        <label>L</label>
+        <input type="number" id="lNum" min="0" max="100" step="1" value="0">
+        <input type="range" id="lRange" min="0" max="100" step="1" value="0">
+      </div>
+
+      <div class="field-row">
+        <label>S</label>
+        <input type="number" id="sNum" min="0" max="100" step="1" value="0">
+        <input type="range" id="sRange" min="0" max="100" step="1" value="0">
+      </div>
+
+      <div class="field-row">
+        <label>Палитра</label>
+        <input type="color" id="hlsPicker" value="#000000">
+      </div>
+    </div>
+
+    <div id="warning" class="warning"></div>
+  </div>
+</div>
+
+<script>
+function clamp(v, min, max) {
+  return Math.min(max, Math.max(min, v));
+}
+
+function round(v, digits = 0) {
+  const p = Math.pow(10, digits);
+  return Math.round(v * p) / p;
+}
+
+function toHex2(v) {
+  const h = clamp(Math.round(v), 0, 255).toString(16);
+  return h.length === 1 ? "0" + h : h;
+}
+
+function rgbToHex(r, g, b) {
+  return "#" + toHex2(r) + toHex2(g) + toHex2(b);
+}
+
+function hexToRgb(hex) {
+  hex = hex.replace("#", "");
+  if (hex.length === 3) {
+    hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+  }
+  return {
+    r: parseInt(hex.substring(0, 2), 16),
+    g: parseInt(hex.substring(2, 4), 16),
+    b: parseInt(hex.substring(4, 6), 16)
+  };
+}
+
+function rgbToCmyk(r, g, b) {
+  r = r / 255;
+  g = g / 255;
+  b = b / 255;
+
+  const k = 1 - Math.max(r, g, b);
+
+  if (k === 1) {
+    return { c: 0, m: 0, y: 0, k: 100 };
+  }
+
+  const c = (1 - r - k) / (1 - k);
+  const m = (1 - g - k) / (1 - k);
+  const y = (1 - b - k) / (1 - k);
+
+  return {
+    c: round(c * 100, 2),
+    m: round(m * 100, 2),
+    y: round(y * 100, 2),
+    k: round(k * 100, 2)
+  };
+}
+
+function cmykToRgb(c, m, y, k) {
+  let clipped = false;
+
+  const check = (v) => {
+    if (v < 0 || v > 100) clipped = true;
+    return clamp(v, 0, 100) / 100;
+  };
+
+  c = check(c);
+  m = check(m);
+  y = check(y);
+  k = check(k);
+
+  const r = 255 * (1 - c) * (1 - k);
+  const g = 255 * (1 - m) * (1 - k);
+  const b = 255 * (1 - y) * (1 - k);
+
+  return {
+    r: clamp(round(r), 0, 255),
+    g: clamp(round(g), 0, 255),
+    b: clamp(round(b), 0, 255),
+    clipped: clipped
+  };
+}
+
+function rgbToHls(r, g, b) {
+  r = r / 255;
+  g = g / 255;
+  b = b / 255;
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const delta = max - min;
+
+  let h = 0;
+  let l = (max + min) / 2;
+  let s = 0;
+
+  if (delta !== 0) {
+    if (l < 0.5) {
+      s = delta / (max + min);
+    } else {
+      s = delta / (2 - max - min);
+    }
+
+    if (max === r) {
+      h = ((g - b) / delta) % 6;
+    } else if (max === g) {
+      h = (b - r) / delta + 2;
+    } else {
+      h = (r - g) / delta + 4;
+    }
+
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+
+  return {
+    h: round(h, 1),
+    l: round(l * 100, 2),
+    s: round(s * 100, 2)
+  };
+}
+
+function hlsToRgb(h, l, s) {
+  let clipped = false;
+
+  const checkH = (v) => {
+    if (v < 0 || v > 360) clipped = true;
+    return ((v % 360) + 360) % 360;
+  };
+
+  const checkLS = (v) => {
+    if (v < 0 || v > 100) clipped = true;
+    return clamp(v, 0, 100) / 100;
+  };
+
+  h = checkH(h);
+  l = checkLS(l);
+  s = checkLS(s);
+
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const hp = h / 60;
+  const x = c * (1 - Math.abs((hp % 2) - 1));
+
+  let r1 = 0, g1 = 0, b1 = 0;
+
+  if (hp >= 0 && hp < 1) {
+    r1 = c; g1 = x; b1 = 0;
+  } else if (hp >= 1 && hp < 2) {
+    r1 = x; g1 = c; b1 = 0;
+  } else if (hp >= 2 && hp < 3) {
+    r1 = 0; g1 = c; b1 = x;
+  } else if (hp >= 3 && hp < 4) {
+    r1 = 0; g1 = x; b1 = c;
+  } else if (hp >= 4 && hp < 5) {
+    r1 = x; g1 = 0; b1 = c;
+  } else {
+    r1 = c; g1 = 0; b1 = x;
+  }
+
+  const m = l - c / 2;
+
+  const r = (r1 + m) * 255;
+  const g = (g1 + m) * 255;
+  const b = (b1 + m) * 255;
+
+  return {
+    r: clamp(round(r), 0, 255),
+    g: clamp(round(g), 0, 255),
+    b: clamp(round(b), 0, 255),
+    clipped: clipped
+  };
+}
+
+let currentRgb = { r: 0, g: 0, b: 0 };
+
+const preview = document.getElementById("preview");
+const hexLabel = document.getElementById("hexLabel");
+const rgbLabel = document.getElementById("rgbLabel");
+const cmykLabel = document.getElementById("cmykLabel");
+const hlsLabel = document.getElementById("hlsLabel");
+const warningBox = document.getElementById("warning");
+
+const cNum = document.getElementById("cNum");
+const mNum = document.getElementById("mNum");
+const yNum = document.getElementById("yNum");
+const kNum = document.getElementById("kNum");
+
+const cRange = document.getElementById("cRange");
+const mRange = document.getElementById("mRange");
+const yRange = document.getElementById("yRange");
+const kRange = document.getElementById("kRange");
+
+const cmykPicker = document.getElementById("cmykPicker");
+
+const rNum = document.getElementById("rNum");
+const gNum = document.getElementById("gNum");
+const bNum = document.getElementById("bNum");
+
+const rRange = document.getElementById("rRange");
+const gRange = document.getElementById("gRange");
+const bRange = document.getElementById("bRange");
+
+const rgbPicker = document.getElementById("rgbPicker");
+
+const hNum = document.getElementById("hNum");
+const lNum = document.getElementById("lNum");
+const sNum = document.getElementById("sNum");
+
+const hRange = document.getElementById("hRange");
+const lRange = document.getElementById("lRange");
+const sRange = document.getElementById("sRange");
+
+const hlsPicker = document.getElementById("hlsPicker");
+
+let warningTimer = null;
+
+function showWarning(text) {
+  warningBox.textContent = text;
+  warningBox.classList.add("show");
+
+  if (warningTimer) clearTimeout(warningTimer);
+  warningTimer = setTimeout(() => {
+    warningBox.classList.remove("show");
+  }, 3500);
+}
+
+function updateUI() {
+  const r = currentRgb.r;
+  const g = currentRgb.g;
+  const b = currentRgb.b;
+
+  const hex = rgbToHex(r, g, b);
+  const cmyk = rgbToCmyk(r, g, b);
+  const hls = rgbToHls(r, g, b);
+
+  preview.style.backgroundColor = hex;
+  hexLabel.textContent = hex.toUpperCase();
+  rgbLabel.textContent = `${r}, ${g}, ${b}`;
+  cmykLabel.textContent =
+    `${round(cmyk.c, 1)}%, ${round(cmyk.m, 1)}%, ` +
+    `${round(cmyk.y, 1)}%, ${round(cmyk.k, 1)}%`;
+  hlsLabel.textContent =
+    `${round(hls.h, 1)}°, ${round(hls.l, 1)}%, ${round(hls.s, 1)}%`;
+
+  cNum.value = round(cmyk.c, 2);
+  mNum.value = round(cmyk.m, 2);
+  yNum.value = round(cmyk.y, 2);
+  kNum.value = round(cmyk.k, 2);
+
+  cRange.value = round(cmyk.c);
+  mRange.value = round(cmyk.m);
+  yRange.value = round(cmyk.y);
+  kRange.value = round(cmyk.k);
+
+  cmykPicker.value = hex;
+
+  rNum.value = r;
+  gNum.value = g;
+  bNum.value = b;
+
+  rRange.value = r;
+  gRange.value = g;
+  bRange.value = b;
+
+  rgbPicker.value = hex;
+
+  hNum.value = round(hls.h, 2);
+  lNum.value = round(hls.l, 2);
+  sNum.value = round(hls.s, 2);
+
+  hRange.value = round(hls.h);
+  lRange.value = round(hls.l);
+  sRange.value = round(hls.s);
+
+  hlsPicker.value = hex;
+}
+
+function setRgb(r, g, b, clipped = false) {
+  currentRgb = {
+    r: clamp(Math.round(r), 0, 255),
+    g: clamp(Math.round(g), 0, 255),
+    b: clamp(Math.round(b), 0, 255)
+  };
+
+  if (clipped) {
+    showWarning(
+      "Некоторые значения вышли за допустимый диапазон и были обрезаны/округлены."
+    );
+  }
+
+  updateUI();
+}
+
+function applyCmyk() {
+  const c = parseFloat(cNum.value) || 0;
+  const m = parseFloat(mNum.value) || 0;
+  const y = parseFloat(yNum.value) || 0;
+  const k = parseFloat(kNum.value) || 0;
+
+  const res = cmykToRgb(c, m, y, k);
+  setRgb(res.r, res.g, res.b, res.clipped);
+}
+
+[cNum, mNum, yNum, kNum].forEach((el) => {
+  el.addEventListener("change", applyCmyk);
+});
+
+[cRange, mRange, yRange, kRange].forEach((el) => {
+  el.addEventListener("input", () => {
+    cNum.value = cRange.value;
+    mNum.value = mRange.value;
+    yNum.value = yRange.value;
+    kNum.value = kRange.value;
+    applyCmyk();
+  });
+});
+
+cmykPicker.addEventListener("input", () => {
+  const rgb = hexToRgb(cmykPicker.value);
+  setRgb(rgb.r, rgb.g, rgb.b);
+});
+
+function applyRgb() {
+  const r = parseFloat(rNum.value) || 0;
+  const g = parseFloat(gNum.value) || 0;
+  const b = parseFloat(bNum.value) || 0;
+
+  const clipped =
+    r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255;
+
+  setRgb(r, g, b, clipped);
+}
+
+[rNum, gNum, bNum].forEach((el) => {
+  el.addEventListener("change", applyRgb);
+});
+
+[rRange, gRange, bRange].forEach((el) => {
+  el.addEventListener("input", () => {
+    rNum.value = rRange.value;
+    gNum.value = gRange.value;
+    bNum.value = bRange.value;
+    applyRgb();
+  });
+});
+
+rgbPicker.addEventListener("input", () => {
+  const rgb = hexToRgb(rgbPicker.value);
+  setRgb(rgb.r, rgb.g, rgb.b);
+});
+
+function applyHls() {
+  const h = parseFloat(hNum.value) || 0;
+  const l = parseFloat(lNum.value) || 0;
+  const s = parseFloat(sNum.value) || 0;
+
+  const res = hlsToRgb(h, l, s);
+  setRgb(res.r, res.g, res.b, res.clipped);
+}
+
+[hNum, lNum, sNum].forEach((el) => {
+  el.addEventListener("change", applyHls);
+});
+
+[hRange, lRange, sRange].forEach((el) => {
+  el.addEventListener("input", () => {
+    hNum.value = hRange.value;
+    lNum.value = lRange.value;
+    sNum.value = sRange.value;
+    applyHls();
+  });
+});
+
+hlsPicker.addEventListener("input", () => {
+  const rgb = hexToRgb(hlsPicker.value);
+  setRgb(rgb.r, rgb.g, rgb.b);
+});
+
+document.getElementById("randomBtn").addEventListener("click", () => {
+  setRgb(
+    Math.floor(Math.random() * 256),
+    Math.floor(Math.random() * 256),
+    Math.floor(Math.random() * 256)
+  );
+});
+
+document.getElementById("blackBtn").addEventListener("click", () => {
+  setRgb(0, 0, 0);
+});
+
+document.getElementById("whiteBtn").addEventListener("click", () => {
+  setRgb(255, 255, 255);
+});
+
+(function buildPalette() {
+  const palette = document.getElementById("palette");
+  const colors = [
+    "#000000", "#444444", "#888888", "#cccccc", "#ffffff",
+    "#ff0000", "#ff8000", "#ffff00", "#80ff00", "#00ff00",
+    "#00ff80", "#00ffff", "#0080ff", "#0000ff", "#8000ff",
+    "#ff00ff", "#ff0080", "#800000", "#008000", "#000080",
+    "#ffcccc", "#ccffcc", "#ccccff", "#ffffcc", "#ffccff",
+    "#cce5ff", "#e5ccff", "#ccffe5", "#ffe5cc", "#e5ffe5"
+  ];
+
+  colors.forEach((color) => {
+    const d = document.createElement("div");
+    d.style.backgroundColor = color;
+    d.title = color;
+    d.addEventListener("click", () => {
+      const rgb = hexToRgb(color);
+      setRgb(rgb.r, rgb.g, rgb.b);
+    });
+    palette.appendChild(d);
+  });
+})();
+
+setRgb(0, 0, 0);
+</script>
+
+</body>
+</html>
